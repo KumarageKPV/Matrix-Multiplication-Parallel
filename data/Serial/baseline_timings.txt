@@ -1,0 +1,16 @@
+# Baseline Timings for Serial Blocked GEMM
+# Platform: Windows 10, Intel i5-12400 (6 cores, 2.5 GHz base)
+# Compiler: GCC 13.2.0 (MSYS2 MinGW64), -O3 -march=native
+# Block size: 64 (optimal for this system)
+
+Matrix Size,Block Size,Time (seconds),Checksum,GFlops
+256,64,0.002616,4199507.547136,12.9
+512,64,0.016232,33526118.721088,16.5
+1024,64,0.144447,268310302.375923,14.9
+2048,64,1.712607,2143508340.916700,10.0
+
+# Notes:
+# - GFlops = 2*N^3 / (time * 1e9)
+# - Performance degrades with N due to increasing cache pressure
+# - Block size 64 chosen as baseline (balances L1/L2 cache usage)
+# - Timings vary ±5% across runs (due to OS scheduling, thermal throttling)

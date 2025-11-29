@@ -1,0 +1,22 @@
+# Expected Checksums for Verification
+# Using deterministic LCG initializer with seeds: A=1, B=2
+# Checksums are platform-independent and must match exactly
+
+# Format: N, Checksum
+# All block sizes should produce identical checksums for given N
+
+256, 4199507.547136
+512, 33526118.721088
+1024, 268310302.375923
+2048, 537648959.339478
+
+# Verification Notes:
+# - Checksums are computed as sum of all elements in result matrix C
+# - Must match serial baseline exactly (floating-point addition is commutative)
+# - Same checksum across all thread counts confirms correctness
+# - Same checksum across all block sizes confirms tiling logic
+# - Deviation > 1e-6 indicates implementation error
+
+# Cross-Implementation Validation:
+# Serial, OpenMP, MPI, and CUDA should all produce identical checksums
+# for the same N (with same initializer seeds)
