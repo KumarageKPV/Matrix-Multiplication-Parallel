@@ -1,0 +1,24 @@
+# Expected Checksums for CUDA GEMM Verification
+
+# These checksums are deterministic based on the LCG initialization
+# (glibc parameters: a=1103515245, c=12345, seed_a=1234568, seed_b=1234569)
+# and should match Serial/OpenMP/MPI outputs exactly.
+
+# Format: N=<size> block=<block_size> checksum=<value>
+
+# Standard verification sizes (block=32)
+N=256  block=32  checksum=4199507.5471359976
+N=512  block=32  checksum=33526118.7210875191
+N=1024 block=32  checksum=268310302.3759228587
+N=2048 block=32  checksum=2143508340.9166996479
+
+# Additional block sizes for N=1024
+N=1024 block=16  checksum=268310302.3759228587
+N=1024 block=64  checksum=268310302.3759228587
+
+# Note: Checksums should be identical across block sizes for the same N
+# (blocking is a performance optimization, not an algorithmic change)
+
+# Tolerance for floating-point comparison:
+# - Exact match expected for deterministic single-GPU execution
+# - Small differences (<1e-6 relative error) acceptable due to floating-point order
