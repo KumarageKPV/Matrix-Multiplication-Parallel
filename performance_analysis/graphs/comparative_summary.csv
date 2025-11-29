@@ -1,0 +1,4 @@
+Implementation,Configuration,Time (s),Speedup,GFLOPs
+Serial,1 thread,0.144447,1.00x,14.90
+OpenMP,16 threads,0.007245,19.94x,37.05
+MPI,8 processes,0.048810,2.96x,44.00

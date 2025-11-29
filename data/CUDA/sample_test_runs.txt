@@ -1,0 +1,266 @@
+# Sample Test Runs and Outputs
+
+This file documents sample test runs with their expected outputs for verification purposes.
+
+## Test Configuration
+
+All tests use:
+- Deterministic LCG initialization (seed_a=1234568, seed_b=1234569)
+- glibc LCG parameters (a=1103515245, c=12345)
+- Double precision (64-bit floating point)
+- GPU: NVIDIA GeForce GTX 1650 (compute capability 7.5)
+
+## Small Test (N=256, block=16)
+
+### Command
+```bash
+./blocked_gemm_cuda 256 16
+```
+
+### Expected Output
+```
+CUDA GEMM: N=256 block=16 time=0.000608 sec checksum=4199507.5471359976 GFLOPs=55.19
+```
+
+### Interpretation
+- Matrix size: 256×256
+- Block size: 16×16
+- Execution time: ~0.6 milliseconds
+- Checksum: 4199507.547... (matches Serial/OpenMP/MPI)
+- Performance: ~55 GFLOPs
+
+---
+
+## Medium Test (N=512, block=32)
+
+### Command
+```bash
+./blocked_gemm_cuda 512 32
+```
+
+### Expected Output
+```
+CUDA GEMM: N=512 block=32 time=0.004206 sec checksum=33526118.7210875191 GFLOPs=63.83
+```
+
+### Interpretation
+- Matrix size: 512×512
+- Block size: 32×32 (maximum safe block size)
+- Execution time: ~4.2 milliseconds
+- Checksum: 33526118.721... (matches other implementations)
+- Performance: ~64 GFLOPs
+
+---
+
+## Large Test (N=1024, block=32)
+
+### Command
+```bash
+./blocked_gemm_cuda 1024 32
+```
+
+### Expected Output
+```
+CUDA GEMM: N=1024 block=32 time=0.031856 sec checksum=268310302.3759228587 GFLOPs=67.41
+```
+
+### Interpretation
+- Matrix size: 1024×1024
+- Block size: 32×32
+- Execution time: ~31.9 milliseconds
+- Checksum: 268310302.376... (deterministic)
+- Performance: ~67 GFLOPs
+- Total FLOPs: 2×1024³ = 2,147,483,648
+
+---
+
+## Extra Large Test (N=2048, block=32)
+
+### Command
+```bash
+./blocked_gemm_cuda 2048 32
+```
+
+### Expected Output
+```
+CUDA GEMM: N=2048 block=32 time=0.191678 sec checksum=2143508340.9166996479 GFLOPs=89.63
+```
+
+### Interpretation
+- Matrix size: 2048×2048
+- Block size: 32×32
+- Execution time: ~191.7 milliseconds
+- Checksum: 2143508340.917... (deterministic)
+- Performance: ~90 GFLOPs (best performance)
+- Total FLOPs: 2×2048³ = 17,179,869,184
+
+---
+
+## Naive Implementation Test (N=512, block=0)
+
+### Command
+```bash
+./blocked_gemm_cuda 512 0
+```
+
+### Expected Output
+```
+CUDA GEMM: N=512 block=0 time=0.XXX sec checksum=33526118.7210875191 GFLOPs=XX.XX
+```
+
+### Interpretation
+- Matrix size: 512×512
+- Block size: 0 (uses naive kernel, no shared memory)
+- Checksum: Same as blocked version (algorithm equivalence)
+- Performance: Typically slower than blocked version
+
+---
+
+## Block Size Comparison (N=1024)
+
+Testing different block sizes to find optimal performance:
+
+### block=8
+```bash
+./blocked_gemm_cuda 1024 8
+# Output: N=1024 block=8 time=0.029846 sec checksum=268310302.3759228587 GFLOPs=71.95
+```
+
+### block=16
+```bash
+./blocked_gemm_cuda 1024 16
+# Output: N=1024 block=16 time=0.029409 sec checksum=268310302.3759228587 GFLOPs=73.02
+```
+**Best performance for N=1024**
+
+### block=24
+```bash
+./blocked_gemm_cuda 1024 24
+# Output: N=1024 block=24 time=0.034449 sec checksum=268310302.3759228587 GFLOPs=62.34
+```
+
+### block=32
+```bash
+./blocked_gemm_cuda 1024 32
+# Output: N=1024 block=32 time=0.032057 sec checksum=268310302.3759228587 GFLOPs=66.99
+```
+
+### Analysis
+- **Optimal block size**: 16×16 for N=1024 on GTX 1650
+- Block=24 performs poorly (not power of 2, poor memory alignment)
+- Checksum identical across all block sizes (correctness verified)
+
+---
+
+## Error Cases
+
+### Block Size Too Large (N=1024, block=48)
+
+#### Command
+```bash
+./blocked_gemm_cuda 1024 48
+```
+
+#### Expected Output
+```
+Error: block_size=48 requires 2304 threads, but GPU only supports 1024 threads per block
+Maximum safe block_size for this GPU: 32
+```
+
+#### Interpretation
+- GTX 1650 has 1024 threads/block limit
+- 48×48 = 2304 threads exceeds limit
+- Program validates and reports error before kernel launch
+
+---
+
+### Invalid Matrix Size (N=0)
+
+#### Command
+```bash
+./blocked_gemm_cuda 0 32
+```
+
+#### Expected Output
+```
+Error: N must be in range (0, 100000]
+```
+
+---
+
+## Checksum Verification
+
+Checksums are deterministic and should match across all implementations:
+
+| N    | Expected Checksum       | Serial | OpenMP | MPI | CUDA |
+|------|------------------------|--------|--------|-----|------|
+| 256  | 4199507.5471359976     | ✓      | ✓      | ✓   | ✓    |
+| 512  | 33526118.7210875191    | ✓      | ✓      | ✓   | ✓    |
+| 1024 | 268310302.3759228587   | ✓      | ✓      | ✓   | ✓    |
+| 2048 | 2143508340.9166996479  | ✓      | ✓      | ✓   | ✓    |
+
+Tolerance: ±1e-6 (floating-point precision)
+
+---
+
+## Performance Summary
+
+### GTX 1650 (Compute 7.5) Performance
+
+| N    | Best Block | Time (s) | GFLOPs | Speedup vs Serial |
+|------|-----------|----------|--------|-------------------|
+| 256  | 16        | 0.000608 | 55.19  | ~5x               |
+| 512  | 16        | 0.003805 | 70.54  | ~5x               |
+| 1024 | 16        | 0.029503 | 72.79  | ~5x               |
+| 2048 | 32        | 0.191678 | 89.63  | ~10x              |
+
+### Comparison with Other Implementations (N=1024)
+
+| Implementation | Threads/Procs | Time (s) | GFLOPs |
+|----------------|---------------|----------|--------|
+| Serial         | 1             | ~0.164   | ~13.4  |
+| OpenMP         | 8             | ~0.030   | ~67    |
+| MPI            | 4             | ~0.040   | ~54    |
+| **CUDA**       | GPU           | **0.029**| **73** |
+
+CUDA achieves competitive performance with OpenMP while running on a mid-range GPU.
+
+---
+
+## Data Files Generated
+
+After running tests, the following files are created/updated:
+
+1. **block_size_analysis.csv** (from `make sweep`)
+   - Contains: N, block_size, time_sec, checksum, GFLOPs
+   - Used for: Block size optimization analysis
+
+2. **baseline_timings.txt** (from `make baseline`)
+   - Contains: Complete benchmark results
+   - Format: N, block_size, time, checksum, GFLOPs
+
+3. **expected_checksums.txt** (reference data)
+   - Contains: Known-good checksums for verification
+   - Used for: Correctness validation
+
+---
+
+## Notes
+
+1. **Timing Variation**: Small variations (±5%) are normal due to:
+   - GPU clock throttling
+   - System load
+   - Driver overhead
+
+2. **Checksum Precision**: Checksums should match to at least 6 decimal places
+   - Exact match expected for single GPU run
+   - Small differences possible due to floating-point rounding order
+
+3. **Performance Scaling**: 
+   - Larger matrices (N≥1024) show better GPU utilization
+   - Small matrices (N<256) may not fully utilize GPU
+
+4. **Block Size Selection**:
+   - Power-of-2 sizes (8, 16, 32) typically perform best
+   - Optimal size varies by matrix size and GPU architecture
+   - Always ≤32 due to thread limit

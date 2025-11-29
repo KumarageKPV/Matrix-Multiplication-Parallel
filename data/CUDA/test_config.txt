@@ -1,0 +1,23 @@
+# Block Size Analysis Configuration
+
+# This file documents the test configuration for block size sweep
+# Modify these parameters to customize performance analysis
+
+# Matrix size for block size sweep
+SWEEP_N=1024
+
+# Block sizes to test
+BLOCK_SIZES=8,16,24,32,48,64
+
+# Expected output columns in block_size_analysis.csv:
+# N, block_size, time_sec, checksum, GFLOPs
+
+# Performance metrics:
+# - time_sec: Kernel execution time (CUDA events)
+# - GFLOPs: (2*N^3)/(time*10^9) floating-point operations per second
+# - checksum: Validation against expected_checksums.txt
+
+# Optimal block size typically:
+# - 32x32 for most modern GPUs (RTX 20xx, 30xx, 40xx, A100)
+# - 16x16 for older architectures or memory-constrained GPUs
+# - 64x64 may exceed shared memory limits on some GPUs

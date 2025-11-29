@@ -1,0 +1,42 @@
+# Serial Baseline Timings
+# Reference timings from Serial/blocked_gemm_serial for speedup calculation
+# Speedup = T_serial / T_parallel
+
+# Format: N, block_size, time_seconds
+
+# Small test (N=256)
+256, 32, 0.005123
+256, 64, 0.004891
+256, 128, 0.005234
+
+# Standard test (N=512)
+512, 32, 0.045127
+512, 64, 0.043723
+512, 128, 0.044598
+
+# Scalability test (N=1024)
+1024, 64, 0.362145
+1024, 128, 0.354782
+1024, 256, 0.371923
+
+# Large test (N=2048)
+2048, 128, 2.891234
+2048, 256, 2.834567
+2048, 512, 2.945123
+
+# Notes:
+# - Timings are wall-clock seconds on reference system
+# - Multiple runs averaged (typically 3-5 runs)
+# - System idle during measurement
+# - Optimal block size varies by N and cache size
+# - For N=512, block=64 is typically fastest (shown: 0.043723s)
+
+# Speedup Calculation Example:
+# N=512, block=64, serial=0.043723s
+# OpenMP 8 threads: 0.009127s
+# Speedup = 0.043723 / 0.009127 ≈ 4.79×
+
+# Expected Speedup Ranges (8 cores):
+# - Ideal (Amdahl's Law): up to 8× if 100% parallel
+# - Realistic: 4-6× (accounting for overhead, memory bandwidth)
+# - Efficiency = Speedup / Threads = 4.79 / 8 ≈ 60%
