@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc make
+          sudo apt-get install -y build-essential gcc make openmpi-bin libopenmpi-dev
       
       - name: Build Serial implementation
         run: |
@@ -55,6 +55,42 @@ jobs:
         run: |
           cd OpenMP
           make verify
+
+      - name: Build MPI implementation
+        run: |
+          cd MPI
+          make clean
+          make
+
+      - name: Verify MPI checksums (PROCS=4)
+        run: |
+          cd MPI
+          make verify PROCS=4 TOL=1e-4
+
+      - name: MPI block size sweep (PROCS=4)
+        run: |
+          cd MPI
+          make sweep PROCS=4
+
+      - name: MPI process scaling study
+        run: |
+          cd MPI
+          make procscale
+
+      - name: MPI baseline timings
+        run: |
+          cd MPI
+          make baseline
+
+      - name: Upload MPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpi-performance-data
+          path: |
+            data/MPI/block_size_analysis.csv
+            data/MPI/proc_scaling.csv
+            data/MPI/baseline_timings.txt
+            data/MPI/expected_checksums.txt
 
   # Auto-merge dev to main after successful validation
   promote-to-main:
