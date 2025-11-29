@@ -19,6 +19,7 @@
 
 #ifdef _MSC_VER
 #include <malloc.h> /* for _aligned_malloc / _aligned_free */
+#include <windows.h> /* for QueryPerformanceCounter */
 #endif
 
 /*
@@ -56,6 +57,33 @@ static inline double *alloc_matrix(int n) {
 #endif
 
     return m;
+}
+
+/*
+ * Cross-platform high-resolution timer.
+ * 
+ * Returns wall-clock time in seconds with nanosecond precision.
+ * 
+ * Platform-specific:
+ * - Windows: Uses QueryPerformanceCounter (~100 ns resolution)
+ * - POSIX: Uses clock_gettime(CLOCK_MONOTONIC) (~1 ns resolution)
+ */
+static inline double wall_time_seconds(void) {
+#ifdef _MSC_VER
+    static LARGE_INTEGER frequency;
+    static int initialized = 0;
+    if (!initialized) {
+        QueryPerformanceFrequency(&frequency);
+        initialized = 1;
+    }
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)frequency.QuadPart;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + 1e-9 * (double)ts.tv_nsec;
+#endif
 }
 
 /*
@@ -207,16 +235,14 @@ int main(int argc, char **argv) {
     init_matrix(A, N, 1);
     init_matrix(B, N, 2);
 
-    struct timespec t0, t1;
-    clock_gettime(CLOCK_MONOTONIC, &t0);
+    double t0 = wall_time_seconds();
 
     if (bs <= 0)
         matmul_naive(A, B, C, N);
     else
         matmul_blocked(A, B, C, N, bs);
 
-    clock_gettime(CLOCK_MONOTONIC, &t1);
-    double elapsed = (t1.tv_sec - t0.tv_sec) + 1e-9 * (t1.tv_nsec - t0.tv_nsec);
+    double elapsed = wall_time_seconds() - t0;
     printf("N=%d  block=%d  time=%.6f sec  checksum=%.6f\n", N, bs, elapsed, checksum(C, N));
 
     if (N <= 256) {
