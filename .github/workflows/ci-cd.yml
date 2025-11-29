@@ -1,0 +1,120 @@
+name: CI/CD Pipeline
+
+# Trigger on pull requests to dev and when code is merged to dev
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+
+jobs:
+  # Validation job for pull requests to dev
+  validate:
+    name: Validate Implementation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc make openmpi-bin libopenmpi-dev
+      
+      - name: Build Serial implementation
+        run: |
+          cd Serial
+          make clean
+          make
+      
+      - name: Test Serial implementation
+        run: |
+          cd Serial
+          make test
+      
+      - name: Verify Serial checksums
+        run: |
+          cd Serial
+          make verify
+      
+      - name: Build OpenMP implementation
+        run: |
+          cd OpenMP
+          make clean
+          make
+      
+      - name: Test OpenMP implementation
+        run: |
+          cd OpenMP
+          make test
+      
+      - name: Verify OpenMP checksums
+        run: |
+          cd OpenMP
+          make verify
+
+      - name: Build MPI implementation
+        run: |
+          cd MPI
+          make clean
+          make
+
+      - name: Verify MPI checksums (PROCS=4)
+        run: |
+          cd MPI
+          make verify PROCS=4 TOL=1e-4
+
+      - name: MPI block size sweep (PROCS=4)
+        run: |
+          cd MPI
+          make sweep PROCS=4
+
+      - name: MPI process scaling study
+        run: |
+          cd MPI
+          make procscale
+
+      - name: MPI baseline timings
+        run: |
+          cd MPI
+          make baseline
+
+      - name: Upload MPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpi-performance-data
+          path: |
+            data/MPI/block_size_analysis.csv
+            data/MPI/proc_scaling.csv
+            data/MPI/baseline_timings.txt
+            data/MPI/expected_checksums.txt
+
+  # Auto-merge dev to main after successful validation
+  promote-to-main:
+    name: Auto-merge dev to main
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge dev to main
+        run: |
+          git fetch origin dev:dev
+          git merge --no-ff dev -m "chore: auto-merge dev to main after successful CI validation"
+          git push origin main
