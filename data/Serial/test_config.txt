@@ -1,0 +1,23 @@
+# Test Configuration for Serial Baseline
+
+# Matrix dimensions tested
+MATRIX_SIZES="256 512 1024 2048"
+
+# Block sizes for analysis
+BLOCK_SIZES="16 32 64 128 256"
+
+# Initialization seeds (deterministic)
+SEED_A=1
+SEED_B=2
+
+# Platform
+# - Windows: MSYS2 MinGW64 Bash
+# - Linux: GCC 11+
+# - macOS: Clang 14+
+
+# Compiler optimization
+CFLAGS="-O3 -march=native -std=c11"
+
+# Timing method
+# - Windows: QueryPerformanceCounter
+# - POSIX: clock_gettime(CLOCK_MONOTONIC)

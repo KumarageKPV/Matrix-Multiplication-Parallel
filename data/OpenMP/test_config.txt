@@ -1,0 +1,44 @@
+# Test Configuration for OpenMP Implementation
+# Generated: November 29, 2025
+# Course: SE3082 Parallel Computing - Assignment 3
+
+[Test Parameters]
+matrix_sizes = 256, 512, 1024, 2048
+block_sizes = 16, 32, 64, 128, 256
+thread_counts = 1, 2, 4, 8, 12, 16
+
+[Compiler Settings]
+compiler = gcc (MinGW-w64)
+version = 11.2.0
+optimization_flags = -O3 -std=c11 -fopenmp
+additional_flags = -Wall -Wextra
+linker_flags = -lm
+
+[System Specifications]
+# Update with actual system details when running tests
+cpu_model = [To be filled]
+cpu_cores = [To be filled]
+cpu_threads = [To be filled]
+cache_l1 = [To be filled]
+cache_l2 = [To be filled]
+cache_l3 = [To be filled]
+ram = [To be filled]
+os = Windows 11 / Linux / macOS
+
+[Test Categories]
+quick_test = N=256, block=64, threads=1,2,4,8
+standard_test = N=512, block=32,64,128, threads=1,2,4,8
+scalability_test = N=1024, block=64,128, threads=1,2,4,8,16
+large_test = N=2048, block=128, threads=1,2,4,8,16,32
+
+[Verification]
+serial_baseline = ../Serial/blocked_gemm_serial
+checksum_tolerance = 1e-6
+timing_runs = 3
+warmup_runs = 1
+
+[Output Files]
+thread_scalability = thread_scalability.csv
+block_analysis = block_size_analysis.csv
+full_benchmark = full_benchmark.csv
+sample_logs = sample_run_*.log

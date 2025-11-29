@@ -1,0 +1,8 @@
+# Expected Checksums for Serial Baseline
+# Deterministic initialization: LCG with seeds 1 (A) and 2 (B)
+# All parallel implementations (OpenMP, MPI, CUDA) must match these values
+
+N=256: 4199507.547136
+N=512: 33526118.721088
+N=1024: 268310302.375923
+N=2048: 2143508340.916700
