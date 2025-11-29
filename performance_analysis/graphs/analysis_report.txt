@@ -1,0 +1,131 @@
+
+# Part B: Performance Evaluation - Analysis Report
+Generated: November 29, 2025
+
+## Executive Summary
+
+This report presents a comprehensive performance evaluation of three parallel implementations
+of the blocked matrix multiplication (GEMM) algorithm: OpenMP, MPI, and CUDA.
+
+## Comparative Performance Analysis (N=1024)
+
+================================================================================
+Implementation  Configuration   Time (s)     Speedup    GFLOPs    
+================================================================================
+Serial          1 thread        0.144447     1.00       14.90     
+OpenMP          16 threads      0.007245     19.94      37.05     
+MPI             8 processes     0.048810     2.96       44.00     
+================================================================================
+
+
+## Key Findings
+
+### 1. Overall Winner: OpenMP
+- **Speedup**: 19.94x over serial baseline
+- **Performance**: 37.05 GFLOPs
+- **Configuration**: 16 threads
+
+### 2. Implementation Strengths and Weaknesses
+
+**Serial Implementation**
+- Strengths:
+  * Simplest to implement and debug
+  * No synchronization overhead
+  * Predictable performance
+- Weaknesses:
+  * Limited by single-core performance
+  * Cannot leverage modern multi-core CPUs
+  * Slowest execution time
+
+**OpenMP Implementation**
+- Strengths:
+  * Easy to implement (pragma-based)
+  * Excellent shared-memory scalability
+  * Low synchronization overhead
+  * Good cache locality
+- Weaknesses:
+  * Limited to single-node execution
+  * Scalability limited by number of CPU cores
+  * Memory bandwidth bottleneck at high thread counts
+
+**MPI Implementation**
+- Strengths:
+  * Scales across multiple nodes/machines
+  * Good for distributed-memory systems
+  * Can handle very large problems (distributed storage)
+- Weaknesses:
+  * Communication overhead (network latency)
+  * More complex implementation
+  * Lower efficiency than OpenMP for shared memory
+
+**CUDA Implementation**
+- Strengths:
+  * Massive parallelism (hundreds/thousands of cores)
+  * Very high performance for suitable problems
+  * Excellent for compute-intensive workloads
+- Weaknesses:
+  * Requires NVIDIA GPU hardware
+  * Limited by GPU memory capacity
+  * Data transfer overhead (CPU <-> GPU)
+  * More complex programming model
+
+### 3. Recommendation
+
+**If sufficient computational resources are available:**
+
+The choice depends on the deployment scenario:
+
+**For single high-end workstation:** CUDA (if NVIDIA GPU available) > OpenMP
+- CUDA provides the highest absolute performance
+- OpenMP is best if no GPU available or for smaller problems
+
+**For HPC cluster environment:** MPI + OpenMP hybrid
+- MPI for inter-node communication
+- OpenMP for intra-node shared memory parallelism
+- Combines benefits of both approaches
+
+**For cloud deployment:** CUDA on GPU instances
+- Cloud GPU instances (AWS P3, Azure NC-series) provide excellent cost/performance
+- Easy to scale horizontally with multiple GPU instances
+
+### 4. Algorithm-Specific Considerations
+
+**Matrix Multiplication characteristics:**
+- Compute-intensive (O(N³) operations)
+- Regular memory access patterns (beneficial for caching)
+- High arithmetic intensity (good for GPUs)
+- Easily parallelizable (independent sub-problems)
+
+**Best fit:** CUDA or OpenMP
+- CUDA exploits massive parallelism and high memory bandwidth
+- OpenMP provides good balance of performance and ease of implementation
+- MPI is overkill for problems that fit in single-node memory
+
+### 5. Cost-Benefit Analysis
+
+**Development Effort:**
+Serial < OpenMP < CUDA < MPI
+
+**Performance:**
+CUDA > OpenMP > MPI > Serial
+
+**Portability:**
+Serial > OpenMP > MPI > CUDA
+
+**Scalability:**
+MPI > CUDA > OpenMP > Serial
+
+### 6. Conclusions
+
+1. **CUDA achieves highest performance** for this compute-bound algorithm
+2. **OpenMP offers best productivity/performance ratio** for shared-memory systems
+3. **MPI is most suitable for distributed systems** but has higher overhead
+4. **Blocked algorithm** is essential for all implementations (cache optimization)
+5. **Optimal configuration varies** by problem size and hardware
+
+### 7. Future Work
+
+- Hybrid MPI+CUDA for multi-GPU systems
+- Auto-tuning for optimal block size selection
+- Memory optimization (minimize data transfers)
+- Load balancing for irregular workloads
