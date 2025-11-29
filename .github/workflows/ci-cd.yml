@@ -1,0 +1,84 @@
+name: CI/CD Pipeline
+
+# Trigger on pull requests to dev and when code is merged to dev
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+
+jobs:
+  # Validation job for pull requests to dev
+  validate:
+    name: Validate Implementation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc make
+      
+      - name: Build Serial implementation
+        run: |
+          cd Serial
+          make clean
+          make
+      
+      - name: Test Serial implementation
+        run: |
+          cd Serial
+          make test
+      
+      - name: Verify Serial checksums
+        run: |
+          cd Serial
+          make verify
+      
+      - name: Build OpenMP implementation
+        run: |
+          cd OpenMP
+          make clean
+          make
+      
+      - name: Test OpenMP implementation
+        run: |
+          cd OpenMP
+          make test
+      
+      - name: Verify OpenMP checksums
+        run: |
+          cd OpenMP
+          make verify
+
+  # Auto-merge dev to main after successful validation
+  promote-to-main:
+    name: Auto-merge dev to main
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge dev to main
+        run: |
+          git fetch origin dev:dev
+          git merge --no-ff dev -m "chore: auto-merge dev to main after successful CI validation"
+          git push origin main
