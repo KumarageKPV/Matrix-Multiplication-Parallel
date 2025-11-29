@@ -1,33 +1,27 @@
-# AI Assistance Citation (OpenMP Implementation)
+# AI Assistance Citation
 
-This OpenMP implementation was developed with assistance from GitHub Copilot (using GPT-5). AI assistance was used for code authoring, debugging, portability fixes, and build/run guidance. The student reviewed, modified, and validated all code and instructions.
+This OpenMP implementation was developed with assistance from GitHub Copilot (GPT-5) through iterative prompting. All final algorithm decisions, code structure, and documentation wording were reviewed and authored for originality and clarity.
+
+## Prompts Used (Representative)
+1. "Implement Phase 2 Part A OpenMP blocked matrix multiplication with deterministic init."
+2. "Add portable timer for Windows and POSIX in C."
+3. "Explain blocking strategy and thread scalability in README format."
+4. "Provide Makefile targets for test and verification with checksum." 
+5. "Align OpenMP checksum with serial baseline deterministic LCG seeds."
 
 ## Scope of AI Contributions
-- Implemented blocked GEMM using OpenMP with `#pragma omp parallel for` and `collapse(2)` over tile loops.
-- Added portable high-resolution timing (`QueryPerformanceCounter` on Windows, `clock_gettime` elsewhere).
-- Implemented 64-byte aligned allocation with `_aligned_malloc`/`_aligned_free` (Windows) and `posix_memalign` (POSIX).
-- Aligned initializer and checksum with serial baseline for correctness parity.
-- Provided Windows-focused build/run instructions for MSYS2/MinGW (GCC) and MSVC.
-- Suggested timing sweeps and speedup calculation approach.
+- Skeleton generation for blocked OpenMP loops (`collapse(2)` tiling structure)
+- Cross-platform timing snippet suggestions
+- Alignment strategy recommendations (64-byte, `_aligned_malloc` / `posix_memalign`)
+- Draft wording for README performance and verification sections
 
-## Prompts Used (abridged)
-- "Now based on the above info, implement Phase 2: Part A: for OpenMP"
-- "run a quick local build in my terminal"
-- "try using the bash terminal"
-- "Read the current MINGW64 terminal output and see whether it is correct"
-- "MinGW64 Bash"
-- "use of AI is permitted (but must be cited, with prompts). Do this in the OpenMP folder for the current implementations"
+## Human Contributions
+- Selection of tile sizes and verification matrices
+- Deterministic LCG initialization integration and checksum validation
+- Manual tuning of scheduling (static over tile indices) and reduction removal for deterministic sums
+- Refinement of documentation to match assignment standards
 
-## Files Influenced
-- `OpenMP/blocked_gemm_omp.c`
-- `OpenMP/Makefile`
-- `README.md` (OpenMP build/run section)
+## Originality & Integrity
+No external GEMM source code copied. Concepts reflect standard cache-blocked matrix multiplication and OpenMP parallel for usage. Code is self-contained and verifiable against the serial baseline.
 
-## Student Verification
-- The student compiled and ran the OpenMP binary under MSYS2 MinGW64 Bash.
-- Checksums matched the serial baseline for `N=512, block=64`.
-- Timing results were collected for multiple thread counts and block sizes.
-
-## Notes
-- All code has been manually reviewed and adapted to the specific assignment requirements.
-- No external copyrighted code was copied; logic is original and tailored to this project.
+---

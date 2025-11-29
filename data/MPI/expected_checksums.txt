@@ -1,0 +1,6 @@
+# Expected Checksums (Serial Baseline Reference)
+# Must match exactly for MPI correctness
+N=256: 4199507.547136
+N=512: 33526118.721088
+N=1024: 268310302.375923
+N=2048: 2143508340.916700
