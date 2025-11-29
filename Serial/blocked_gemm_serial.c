@@ -21,7 +21,21 @@
 #include <malloc.h> /* for _aligned_malloc / _aligned_free */
 #endif
 
-/* Cross-platform aligned allocation */
+/*
+ * Cross-platform aligned matrix allocation.
+ * 
+ * Allocates an n×n matrix with 64-byte alignment for optimal performance.
+ * 
+ * Why 64-byte alignment?
+ * - Matches typical cache line size (prevents false sharing in parallel code)
+ * - Enables efficient SIMD operations (AVX-512 requires 64-byte alignment)
+ * - Improves hardware prefetching behavior
+ * - Reduces cache misses from unaligned access
+ * 
+ * Platform-specific:
+ * - Windows (MSVC): Uses _aligned_malloc / _aligned_free
+ * - POSIX: Uses standard malloc (typically 16-byte aligned for double)
+ */
 static inline double *alloc_matrix(int n) {
     size_t bytes = sizeof(double) * (size_t)n * n;
     double *m = NULL;
@@ -44,7 +58,24 @@ static inline double *alloc_matrix(int n) {
     return m;
 }
 
-/* initialize matrix with deterministic pseudo-random values */
+/*
+ * Deterministic matrix initialization using Linear Congruential Generator (LCG).
+ * 
+ * Why deterministic?
+ * - Ensures reproducibility across runs for verification
+ * - Enables exact comparison between serial/OpenMP/MPI/CUDA implementations
+ * - No need to save/load large matrix files for testing
+ * 
+ * LCG parameters (from glibc rand()):
+ * - Multiplier a = 1103515245
+ * - Increment c = 12345
+ * - Produces values in [0.0, 1.0) range
+ * 
+ * seed_offset allows generating different matrices:
+ * - A uses seed_offset=1
+ * - B uses seed_offset=2
+ * - Ensures A ≠ B while maintaining determinism
+ */
 void init_matrix(double *M, int n, int seed_offset) {
     uint32_t state = 1234567u + (uint32_t)seed_offset;
     for (int i = 0; i < n * n; ++i) {
@@ -53,11 +84,29 @@ void init_matrix(double *M, int n, int seed_offset) {
     }
 }
 
-/* naive matrix multiply */
+/*
+ * Naive triple-loop matrix multiplication: C = A × B
+ * 
+ * Algorithm: Standard ijk ordering
+ * - Computes each C[i,j] as dot product of A[i,:] and B[:,j]
+ * - O(N³) floating-point operations (2N³ FLOPs for multiply-add)
+ * 
+ * Performance characteristics:
+ * - Poor cache locality: B accessed in column-major order (strided)
+ * - Each B element loaded N times (no temporal reuse)
+ * - High cache miss rate for large N
+ * - Memory bandwidth bound rather than compute bound
+ * 
+ * Used as:
+ * - Baseline for performance comparison
+ * - Reference for correctness verification (N ≤ 256)
+ * - Demonstrates need for blocking optimization
+ */
 void matmul_naive(const double *A, const double *B, double *C, int n) {
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             double sum = 0.0;
+            // Compute dot product: C[i,j] = A[i,:] · B[:,j]
             for (int k = 0; k < n; ++k) {
                 sum += A[i*n + k] * B[k*n + j];
             }
@@ -66,19 +115,53 @@ void matmul_naive(const double *A, const double *B, double *C, int n) {
     }
 }
 
-/* blocked (tiled) multiply */
+/*
+ * Blocked (tiled) matrix multiplication for improved cache locality.
+ * 
+ * Strategy:
+ * 1. Partition N×N matrices into bs×bs blocks (tiles)
+ * 2. Process one tile at a time to maximize cache reuse
+ * 3. Perform mini-GEMM on each tile pair
+ * 
+ * Cache optimization:
+ * - Tiles fit in L1/L2 cache (bs² × sizeof(double) bytes per tile)
+ * - Each tile element reused bs times (vs. N times in naive)
+ * - Reduces memory traffic by factor of bs/cache_line_size
+ * - Typical speedup: 2-5× for N=512-2048, bs=32-128
+ * 
+ * Loop structure (outer to inner):
+ * - ii, kk, jj: Tile indices (step by bs)
+ * - i, k, j: Element indices within tiles
+ * - ikj ordering chosen for:
+ *   * Good spatial locality in C (row-major writes)
+ *   * Register reuse of A[i,k] across j loop
+ *   * Sequential B[k,j] access (prefetcher-friendly)
+ * 
+ * Complexity:
+ * - Still O(N³) FLOPs, but with O(N³/bs) cache misses instead of O(N³)
+ * - Performance limited by memory bandwidth for large N
+ */
 void matmul_blocked(const double *A, const double *B, double *C, int n, int bs) {
+    // Zero-initialize output matrix
     for (int i = 0; i < n * n; ++i) C[i] = 0.0;
 
-    for (int ii = 0; ii < n; ii += bs) {
-        int iimax = (ii + bs < n) ? ii + bs : n;
-        for (int kk = 0; kk < n; kk += bs) {
+    // Outer loops: iterate over bs×bs tiles
+    for (int ii = 0; ii < n; ii += bs) {          // Row tiles of A and C
+        int iimax = (ii + bs < n) ? ii + bs : n;  // Handle edge case (N % bs != 0)
+        for (int kk = 0; kk < n; kk += bs) {      // Column tiles of A, row tiles of B
             int kkmax = (kk + bs < n) ? kk + bs : n;
-            for (int jj = 0; jj < n; jj += bs) {
+            for (int jj = 0; jj < n; jj += bs) {  // Column tiles of B and C
                 int jjmax = (jj + bs < n) ? jj + bs : n;
+                
+                // Inner loops: process bs×bs tile (micro-kernel)
                 for (int i = ii; i < iimax; ++i) {
                     for (int k = kk; k < kkmax; ++k) {
+                        // Load A[i,k] once and reuse across entire row of B
+                        // This exploits register reuse and reduces memory bandwidth
                         double a_ik = A[i*n + k];
+                        
+                        // Innermost loop: good spatial locality in B and C
+                        // Sequential access pattern enables hardware prefetching
                         for (int j = jj; j < jjmax; ++j) {
                             C[i*n + j] += a_ik * B[k*n + j];
                         }
@@ -89,7 +172,17 @@ void matmul_blocked(const double *A, const double *B, double *C, int n, int bs) 
     }
 }
 
-/* quick checksum */
+/*
+ * Simple checksum for correctness verification.
+ * 
+ * Computes sum of all matrix elements. Not cryptographically secure,
+ * but sufficient for detecting implementation errors.
+ * 
+ * Properties:
+ * - Deterministic for given input
+ * - Commutative (order-independent for exact arithmetic)
+ * - Must match across all implementations (serial/OpenMP/MPI/CUDA)
+ */
 double checksum(const double *M, int n) {
     double s = 0.0;
     for (int i = 0; i < n * n; ++i) s += M[i];
