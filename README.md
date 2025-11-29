@@ -1,6 +1,6 @@
 ## Dense Matrix Multiplication (GEMM) – Parallel Versions
 
-### Chosen Algorithm
+### Algorithm
 **Title**: Blocked Dense Matrix Multiplication (GEMM)  
 **Domain**: Numerical Computation and Scientific Computing  
 **Problem**: Compute C = A × B where A, B, C are large dense square matrices
