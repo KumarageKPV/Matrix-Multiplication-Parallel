@@ -169,4 +169,3 @@ Implementation authored originally for this assignment. AI assistance cited sepa
 - Strong vs. weak scaling principles
 
 ---
-**Next:** Implement CUDA version after validating MPI correctness.
