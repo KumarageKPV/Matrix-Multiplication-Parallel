@@ -57,7 +57,3 @@ dkms.conf
 *.vscode/
 
 *workspace-files.txt
-
-*Assignment.txt
-*PART_C_REPORT.pdf
-*PART_C_REPORT.md
