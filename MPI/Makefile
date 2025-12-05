@@ -1,7 +1,8 @@
 # Makefile for MPI blocked GEMM
 
 MPICC ?= mpicc
-MPIRUN ?= mpiexec --oversubscribe
+# MS-MPI (Windows) doesn't support --oversubscribe; Open MPI does
+MPIRUN ?= mpiexec
 CFLAGS = -O3 -std=c11 -Wall -Wextra -march=native
 TARGET = blocked_gemm_mpi
 SRC = blocked_gemm_mpi.c

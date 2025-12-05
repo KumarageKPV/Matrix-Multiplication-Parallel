@@ -14,7 +14,13 @@ function Build-CUDA {
     Write-Host "=== Building CUDA GEMM ===" -ForegroundColor Cyan
     Write-Host "Architecture: $Arch"
     
-    nvcc -O3 -arch=$Arch -o $Executable blocked_gemm_cuda.cu
+    $archFlag = "-arch=$Arch"
+    nvcc -O3 $archFlag -o $Executable blocked_gemm_cuda.cu
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Build failed!" -ForegroundColor Red
+        exit 1
+    }
     
     if (Test-Path $Executable) {
         Write-Host "Build successful!" -ForegroundColor Green
