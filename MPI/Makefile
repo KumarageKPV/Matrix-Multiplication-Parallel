@@ -9,6 +9,18 @@ ifneq (,$(findstring Microsoft MPI,$(MPI_VERSION)))
 else
     MPIRUN ?= mpiexec --oversubscribe
 endif
+
+# Platform detection for clean command
+ifeq ($(OS),Windows_NT)
+    ifeq ($(shell echo $$MSYSTEM 2>/dev/null),)
+        RM = del /Q
+    else
+        RM = rm -f
+    endif
+else
+    RM = rm -f
+endif
+
 CFLAGS = -O3 -std=c11 -Wall -Wextra -march=native
 TARGET = blocked_gemm_mpi
 SRC = blocked_gemm_mpi.c
