@@ -1,29 +1,55 @@
-## Dense Matrix Multiplication (GEMM) – Parallel Versions
+# Parallel Matrix Multiplication (Blocked GEMM)
+  
+**Algorithm**: Blocked Dense Matrix Multiplication (C = A × B)
 
-### Algorithm
-**Title**: Blocked Dense Matrix Multiplication (GEMM)  
-**Domain**: Numerical Computation and Scientific Computing  
-**Problem**: Compute C = A × B where A, B, C are large dense square matrices
+## Overview
+Four implementations of cache-blocked GEMM with O(N³) complexity:
+- **Serial** – Optimized blocked baseline (C)
+- **OpenMP** – Shared-memory parallel (multi-threaded)
+- **MPI** – Distributed-memory parallel (message passing)
+- **CUDA** – GPU-accelerated (NVIDIA)
 
-### Why suitable for parallelization?
-- O(N³) computational intensity with independent accumulation operations
-- Excellent data parallelism (each C[i][j] can be computed independently)
-- High cache reuse potential with blocking/tiled approach
-- Well-studied benchmark in high-performance computing (BLAS SGEMM/DGEMM)
-- Scales across shared memory (OpenMP), distributed memory (MPI), and GPU (CUDA)
+## Repository Structure
+```
+Matrix-Multiplication-Parallel/
+├── Serial/           # Sequential baseline
+├── OpenMP/           # Shared-memory (threads)
+├── MPI/              # Distributed-memory (processes)
+├── CUDA/             # GPU-accelerated
+├── performance_analysis/  # Graphs, CSVs, analysis
+├── data/             # Performance artifacts & checksums
+└── screenshots/      # Execution & timing results
+```
 
-### Implementations
-- `Serial/`       → Optimized blocked serial baseline (C)
-- `OpenMP/`       → Multi-threaded OpenMP version
-- `MPI/`          → Distributed-memory MPI version
-- `CUDA/`         → CUDA GPU implementation
-- `report/`       → Full PDF report + graphs
-- `screenshots/`  → Execution screenshots and timing results
-- `data/`         → Sample input matrices and verification outputs
+## Quick Start
+See individual README files in each implementation folder for detailed instructions:
+- [`Serial/README.md`](Serial/README.md)
+- [`OpenMP/README.md`](OpenMP/README.md)
+- [`MPI/README.md`](MPI/README.md)
+- [`CUDA/README.md`](CUDA/README.md)
+- [`performance_analysis/README.md`](performance_analysis/README.md)
+
+## Performance Summary
+Graphs and analysis available in `performance_analysis/graphs/`. Generate with:
+```bash
+cd performance_analysis
+python generate_graphs.py
+```
+
+## Documentation
+- **AI Citation**: See `*/AI_CITATION.md` in each implementation folder
+
+---
 
 
+## Serial Baseline
 
-### Build & Run: OpenMP
+**Build**: `cd Serial && make`  
+**Run**: `./blocked_gemm_serial N block_size`  
+**Details**: See [`Serial/README.md`](Serial/README.md)
+
+
+## OpenMP (Shared-Memory)
 
 #### Build
 - **GCC (MSYS2/MinGW):**
@@ -80,11 +106,16 @@ OpenMP GEMM: N=512 block=64 threads=8 time=0.123456 sec checksum=0.0001234567
 	```
 
 #### Run
+**MS-MPI (Windows):**
 ```bash
-mpiexec --oversubscribe -n 4 ./blocked_gemm_mpi N block_size
-# Example:
+mpiexec -n 4 blocked_gemm_mpi.exe 1024 128
+```
+
+**Open MPI (Linux/WSL/MSYS2):**
+```bash
 mpiexec --oversubscribe -n 4 ./blocked_gemm_mpi 1024 128
 ```
+
 Arguments:
 - `N`: matrix size (NxN)
 - `block_size`: tile size (<=0 runs naive MPI)
@@ -112,12 +143,13 @@ MPI GEMM: N=1024 block=128 procs=4 time=0.123456 sec checksum=268310302.375923 G
 - `data/MPI/test_config.txt` – configurable sizes, block sizes, and process counts
 
 #### Notes
-- All MPI runs use `mpiexec --oversubscribe` by default for CI and local compatibility.
+- **MS-MPI** (Windows default): Use `mpiexec -n P blocked_gemm_mpi.exe`
+- **Open MPI** (Linux/WSL): Use `mpiexec --oversubscribe -n P ./blocked_gemm_mpi` (--oversubscribe allows overcommitting cores)
 - See `MPI/AI_CITATION.md` for AI assistance details and originality statement.
+- **Details**: See [`MPI/README.md`](MPI/README.md)
 
 
-
-### Build & Run: CUDA
+## CUDA (GPU)
 
 #### Build
 - **NVIDIA CUDA Toolkit:**
@@ -188,6 +220,6 @@ CUDA GEMM: N=1024 block=32 time=0.012345 sec checksum=268310302.3759 GFLOPs=1750
 - Requires NVIDIA GPU with CUDA support
 - Windows users: Use `build.ps1` PowerShell script (no `make` required)
 - Block size limited by GPU (typically max 32 due to 1024 threads/block)
-- See `CUDA/AI_CITATION.md` for AI assistance details and originality statement.
-
+- See `CUDA/AI_CITATION.md` for AI assistance details and originality statement
+- **Details**: See [`CUDA/README.md`](CUDA/README.md)
 
