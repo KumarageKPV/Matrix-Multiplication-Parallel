@@ -7,12 +7,21 @@ CFLAGS = -Wall -Wextra -std=c11 -O3 -march=native
 TARGET = blocked_gemm_serial
 SRC = blocked_gemm_serial.c
 
-# Platform detection
+# Platform detection - check for MSYS/Git Bash or native Windows
 ifeq ($(OS),Windows_NT)
-    RM = del /Q
-    EXE_EXT = .exe
-    MKDIR = if not exist $(subst /,\,$(1)) mkdir $(subst /,\,$(1))
+    ifeq ($(shell echo $$MSYSTEM 2>/dev/null),)
+        # Native Windows (cmd.exe or PowerShell)
+        RM = del /Q
+        EXE_EXT = .exe
+        MKDIR = if not exist $(subst /,\,$(1)) mkdir $(subst /,\,$(1))
+    else
+        # MSYS2/Git Bash on Windows
+        RM = rm -f
+        EXE_EXT = .exe
+        MKDIR = mkdir -p $(1)
+    endif
 else
+    # Linux/macOS
     RM = rm -f
     EXE_EXT =
     MKDIR = mkdir -p $(1)
